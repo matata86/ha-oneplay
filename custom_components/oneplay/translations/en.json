@@ -1,0 +1,58 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Oneplay",
+        "description": "Oneplay account credentials. The integration reads the 'Continue watching' row to find out what is playing.",
+        "data": {
+          "email": "E-mail",
+          "password": "Password",
+          "tv_entity": "TV",
+          "tv_source": "Oneplay source name on the TV"
+        }
+      },
+      "account": {
+        "title": "Choose account",
+        "data": {
+          "account_id": "Account"
+        }
+      },
+      "profile": {
+        "title": "Choose profile",
+        "data": {
+          "profile_id": "Profile"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Wrong e-mail or password.",
+      "cannot_connect": "Oneplay is not responding."
+    },
+    "abort": {
+      "already_configured": "This account is already configured."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "prehrava": {
+        "name": "Playing"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Oneplay settings",
+        "description": "Choose the Oneplay account device that is the TV. 'Playing' is then only true while that device streams.",
+        "data": {
+          "oneplay_device": "Oneplay device (TV)",
+          "tv_entity": "TV in HA",
+          "tv_source": "Oneplay source name on the TV"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Oneplay is not responding."
+    }
+  }
+}

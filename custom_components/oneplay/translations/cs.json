@@ -1,0 +1,58 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Oneplay",
+        "description": "Přihlašovací údaje k účtu Oneplay. Integrace čte řadu „Pokračovat ve sledování“ a zjišťuje, co se právě přehrává.",
+        "data": {
+          "email": "E-mail",
+          "password": "Heslo",
+          "tv_entity": "Televize",
+          "tv_source": "Název zdroje Oneplay na televizi"
+        }
+      },
+      "account": {
+        "title": "Výběr účtu",
+        "data": {
+          "account_id": "Účet"
+        }
+      },
+      "profile": {
+        "title": "Výběr profilu",
+        "data": {
+          "profile_id": "Profil"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Špatný e-mail nebo heslo.",
+      "cannot_connect": "Oneplay neodpovídá."
+    },
+    "abort": {
+      "already_configured": "Tento účet už je přidaný."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "prehrava": {
+        "name": "Přehrává"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nastavení Oneplay",
+        "description": "Vyber zařízení na účtu Oneplay, které odpovídá televizi. „Přehrává“ pak platí jen tehdy, když streamuje právě ono (řada Pokračovat ve sledování patří profilu, pozici může posouvat i tablet).",
+        "data": {
+          "oneplay_device": "Zařízení Oneplay (televize)",
+          "tv_entity": "Televize v HA",
+          "tv_source": "Název zdroje Oneplay na televizi"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Oneplay neodpovídá."
+    }
+  }
+}
