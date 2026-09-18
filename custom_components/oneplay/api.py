@@ -192,7 +192,7 @@ class OneplayApi:
         """Dlaždice řady „Pokračovat ve sledování“, nejnověji sledované první."""
         try:
             data = await self.call("carousel.display", {"payload": {
-                "carouselId": CW_CAROUSEL, "paging": {"count": 6, "position": 1}}})
+                "carouselId": CW_CAROUSEL, "paging": {"count": 10, "position": 1}}})
             tiles = (data.get("carousel") or {}).get("tiles")
             if tiles is not None:
                 return tiles
