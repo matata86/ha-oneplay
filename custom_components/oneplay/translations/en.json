@@ -43,7 +43,7 @@
     "step": {
       "init": {
         "title": "Oneplay settings",
-        "description": "Choose the Oneplay account device that is the TV. 'Playing' is then only true while that device streams.",
+        "description": "Choose the Oneplay account device that is the TV. 'Playing' is then only true while that device streams (the Continue watching row belongs to the profile, a tablet can move its position too). Last updated item: {posledni_titul}.",
         "data": {
           "oneplay_device": "Oneplay device (TV)",
           "tv_entity": "TV in HA",
