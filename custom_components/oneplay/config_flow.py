@@ -118,20 +118,32 @@ class OneplayOptionsFlow(OptionsFlow):
             return self.async_create_entry(data=user_input)
         cur = {**self.config_entry.data, **self.config_entry.options}
         errors: dict[str, str] = {}
+        api = self.config_entry.runtime_data.api
         zarizeni: list[tuple[str, str]] = [("Jakékoli zařízení", "")]
         vychozi = cur.get(CONF_DEVICE_ID)
+        posledni_titul = "—"
         try:
-            devices = await self.config_entry.runtime_data.api.devices_checked()
+            devices = await api.devices_checked()
+            tiles = await api.continue_watching()
+            if tiles:
+                tr = tiles[0].get("tracking") or {}
+                nazev = (tr.get("parent") or {}).get("title") or tiles[0].get("title") or "?"
+                posledni_titul = nazev + (f" — {tiles[0]['subTitle']}" if tiles[0].get("subTitle") else "")
         except (OneplayError, Exception):  # noqa: BLE001
             _LOGGER.exception("Oneplay: chyba při načtení zařízení")
             errors["base"] = "cannot_connect"
             devices = []
+        pocet_streamujicich = sum(1 for d in devices if d.get("isStreaming"))
         for d in devices:
             if d.get("name") == DEVICE_NAME:
                 continue
             popis = f"{d.get('name')} ({d.get('deviceType')}, naposledy {d.get('lastUsedAtFormatted')})"
             if d.get("isStreaming"):
-                popis += " — právě streamuje"
+                # Titul patří účtu/profilu, ne konkrétnímu zařízení — u jediného
+                # streamujícího zařízení je přiřazení jednoznačné, u víc jich by
+                # bylo zavádějící ho přičítat všem stejně.
+                popis += (f" — právě streamuje ({posledni_titul})" if pocet_streamujicich == 1
+                         else " — právě streamuje")
             zarizeni.append((popis, str(d.get("id"))))
             if vychozi is None and d.get("deviceType") == "smarttv":
                 vychozi = str(d.get("id"))
@@ -141,4 +153,5 @@ class OneplayOptionsFlow(OptionsFlow):
                 selector.EntitySelector(selector.EntitySelectorConfig(domain="media_player")),
             vol.Required(CONF_TV_SOURCE, default=cur.get(CONF_TV_SOURCE, DEFAULT_TV_SOURCE)): str,
         })
-        return self.async_show_form(step_id="init", data_schema=schema, errors=errors)
+        return self.async_show_form(step_id="init", data_schema=schema, errors=errors,
+                                    description_placeholders={"posledni_titul": posledni_titul})
