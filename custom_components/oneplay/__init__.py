@@ -4,11 +4,16 @@ Zdroj: řada „Pokračovat ve sledování“ na účtu. Na API se ptá jen tehd
 má TV nastavený zdroj Oneplay.
 
 Tile[0] (nejvýš v řadě) NENÍ spolehlivě „to, co se hraje“ — ověřeno 2026-09-18
-večer: probíhající živý zápas (epgitem) vyskočil na první místo, přestože jeho
-pozice zůstala celé hodiny stejná (111 s), zatímco skutečně sledovaný pořad
-o pár míst níž měl pozici rostoucí. Oneplay řadu zjevně řadí i podle toho, co
-právě běží živě, ne jen podle posledního sledování. Proto se prochází víc
-dlaždic a vybírá se ta, jejíž pozice se od minulého dotazu doopravdy posunula.
+večer: probíhající živé vysílání (epgitem) se umí vyšvihnout na první místo, i
+když ho nikdo nesleduje, a jeho `progress.position` zůstane stát na místě,
+kde ho uživatel opustil (u Hokeje hodiny na 111 s). Proto se prochází víc
+dlaždic a vybírá se ta, jejíž pozice se od minulého dotazu doopravdy posunula
+— to platí i pro `epgitem`: dokud je TV naladěná na živý kanál, jeho pozice
+poctivě roste s reálným časem, jakmile se přeladí, zamrzne (ověřeno na
+přechodu Hokej → Ano, šéfe! → Ulice, vždy přesně v okamžiku přepnutí kanálu).
+Vybraná dlaždice, u které dlouho (`STEJNE_VZDEJ_TO` dotazů) nic neroste, se
+zahazuje, aby se sensor nezasekl navěky na starém pozastaveném pořadu, když
+mezitím naskočí něco jiného živého.
 """
 from __future__ import annotations
 
@@ -30,6 +35,7 @@ from .const import (CONF_ACCOUNT_ID, CONF_DEVICE_ID, CONF_PROFILE_ID, CONF_TV_EN
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SENSOR]
+STEJNE_VZDEJ_TO = 5   # dotazů (~5 min) bez pohybu, než přestaneme trvat na staré pauze
 
 
 def parse_tile(tile: dict) -> dict[str, Any]:
@@ -89,6 +95,11 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:  # noqa: BLE001 — síť/timeout
             raise UpdateFailed(f"Oneplay nedostupný: {err}") from err
 
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug("Oneplay dlaždice: %s", [
+                ((t.get("tracking") or {}).get("id"), (t.get("progress") or {}).get("position"),
+                 (t.get("progress") or {}).get("percent"), t.get("title"))
+                for t in tiles[:10]])
         streamuje = [d.get("name") for d in devices if d.get("isStreaming")]
         # Vybrané zařízení (TV) na účtu streamuje? Bez výběru stačí jakékoli.
         tv_streamuje = any(d.get("isStreaming") and (not self.device_id or str(d.get("id")) == self.device_id)
@@ -113,14 +124,17 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if aktivni and posunuta is not None:
             data = parse_tile(posunuta)
             self._vybrany, hraje, self._stejne = data.get("content_id"), True, 0
-        elif aktivni and self._vybrany and any(
+        elif aktivni and self._vybrany and self._stejne < STEJNE_VZDEJ_TO and any(
                 (t.get("tracking") or {}).get("id") == self._vybrany for t in tiles):
             # Nic se neposunulo, ale dlaždice, u které jsme to naposled viděli,
-            # v řadě pořád je — bereme to jako pauzu na tom samém pořadu.
+            # v řadě pořád je — bereme to jako pauzu na tom samém pořadu. Jen ne
+            # navěky: po STEJNE_VZDEJ_TO dotazech bez pohybu to vzdáme (dole).
             data = parse_tile(next(t for t in tiles if (t.get("tracking") or {}).get("id") == self._vybrany))
             self._stejne += 1
             hraje = False
         elif tiles:
+            # Bez použitelné historie (start, nebo dávno zaseklá pauza) nevíme
+            # jistě, co se hraje — bereme první dlaždici, ale bez tvrzení, že hraje.
             data = parse_tile(tiles[0])
             self._vybrany, hraje, self._stejne = None, False, 0
         else:
