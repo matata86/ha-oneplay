@@ -41,6 +41,8 @@ Nastavení → Zařízení a služby → Přidat integraci → **Oneplay**.
 
 Integrace si zařízení na účtu Oneplay pojmenuje „Home Assistant“; při dalším přihlášení starší zařízení se stejným jménem sama odstraní, aby se na účtu nehromadila.
 
+**Nejspolehlivější je mít pro televizi samostatný profil Oneplay** (Možnosti → Profil Oneplay) a v aplikaci na TV používat jen ten: řada „Pokračovat ve sledování“ pak patří jen televizi a rozpoznání pořadu nezpletou ostatní zařízení.
+
 V **Možnostech** integrace (ozubené kolo) jde dodatečně vybrat konkrétní zařízení na účtu Oneplay, které je ta televize — řada „Pokračovat ve sledování“ patří profilu, ne zařízení, takže bez výběru může pozici posouvat i jiné zařízení na stejném profilu (tablet, mobil).
 
 ## Jak to funguje uvnitř
@@ -51,6 +53,7 @@ Protokol je stejný, jaký používá web Oneplay i [Kodi doplněk `plugin.video
 
 - API neříká, *které* zařízení konkrétní položku v „Pokračovat ve sledování“ posunulo — jen že se něco posunulo a která zařízení právě streamují. Bez výběru zařízení v nastavení se tedy může stát, že se u vybrané TV zobrazí pořad z jiného zařízení na stejném profilu.
 - Živé vysílání (TV kanály) je odzkoušené jen částečně — položky typu `epgitem` se v řadě objevují, ale přesné chování při přepínání kanálů nebylo ověřeno tak důkladně jako u pořadů ze záznamu.
+- Při sdíleném profilu integrace odhaduje pořad podle toho, u které dlaždice roste pozice; vybraná dlaždice se drží, dokud roste, a záznam má přednost před živým vysíláním. Jistotu dá jen samostatný profil pro TV.
 - Interval dotazu je 60 s, takže změna (pauza/play) se projeví s menším zpožděním než u lokálního přehrávače.
 
 ## Řešení potíží

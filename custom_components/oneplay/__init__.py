@@ -65,9 +65,9 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(hass, _LOGGER, name=DOMAIN, config_entry=entry,
                          update_interval=timedelta(seconds=SCAN_INTERVAL_S))
         d = entry.data
-        self.api = OneplayApi(async_get_clientsession(hass), d[CONF_EMAIL], d[CONF_PASSWORD],
-                              d.get(CONF_ACCOUNT_ID), d.get(CONF_PROFILE_ID))
         o = {**d, **entry.options}
+        self.api = OneplayApi(async_get_clientsession(hass), d[CONF_EMAIL], d[CONF_PASSWORD],
+                              d.get(CONF_ACCOUNT_ID), o.get(CONF_PROFILE_ID))
         self.tv_entity = o.get(CONF_TV_ENTITY, DEFAULT_TV_ENTITY)
         self.tv_source = o.get(CONF_TV_SOURCE, DEFAULT_TV_SOURCE)
         self.device_id = str(o.get(CONF_DEVICE_ID) or "")
@@ -110,7 +110,7 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # na který se nikdo nedívá). Pozice se ukládá po desítkách sekund, proto
         # jeden stejný vzorek po sobě ještě neznamená pauzu daného pořadu.
         pozice_nyni: dict[str, tuple] = {}
-        posunuta: dict | None = None
+        posunute: list[dict] = []
         for tile in tiles:
             cid = (tile.get("tracking") or {}).get("id")
             if not cid:
@@ -118,11 +118,22 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             prog = tile.get("progress") or {}
             klic = (prog.get("position"), prog.get("percent"))
             pozice_nyni.setdefault(cid, klic)
-            if posunuta is None and cid in self._pozice and klic != self._pozice[cid]:
-                posunuta = tile
+            if cid in self._pozice and klic != self._pozice[cid]:
+                posunute.append(tile)
 
-        if aktivni and posunuta is not None:
-            data = parse_tile(posunuta)
+        # Pozice může růst u víc dlaždic naráz (živé přenosy sledované jinde na
+        # profilu — tablet, druhá TV). Držet se dlaždice, kterou už máme vybranou,
+        # dokud roste; přejít jinam až když stála aspoň dva dotazy po sobě (jeden
+        # stojící vzorek u VOD je jen zpožděné ukládání pozice). Při novém výběru
+        # dostane přednost záznam (episode) před živým vysíláním.
+        drzena = next((t for t in posunute if (t.get("tracking") or {}).get("id") == self._vybrany), None)
+        if aktivni and drzena is not None:
+            data = parse_tile(drzena)
+            hraje, self._stejne = True, 0
+        elif aktivni and posunute and (not self._vybrany or self._stejne >= 1 or not any(
+                (t.get("tracking") or {}).get("id") == self._vybrany for t in tiles)):
+            nova = next((t for t in posunute if (t.get("tracking") or {}).get("type") != "epgitem"), posunute[0])
+            data = parse_tile(nova)
             self._vybrany, hraje, self._stejne = data.get("content_id"), True, 0
         elif aktivni and self._vybrany and self._stejne < STEJNE_VZDEJ_TO and any(
                 (t.get("tracking") or {}).get("id") == self._vybrany for t in tiles):

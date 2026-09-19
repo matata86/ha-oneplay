@@ -122,8 +122,10 @@ class OneplayOptionsFlow(OptionsFlow):
         zarizeni: list[tuple[str, str]] = [("Jakékoli zařízení", "")]
         vychozi = cur.get(CONF_DEVICE_ID)
         posledni_titul = "—"
+        profily: list[tuple[str, str]] = []
         try:
             devices = await api.devices_checked()
+            profily = await api.profiles()
             tiles = await api.continue_watching()
             if tiles:
                 tr = tiles[0].get("tracking") or {}
@@ -147,7 +149,11 @@ class OneplayOptionsFlow(OptionsFlow):
             zarizeni.append((popis, str(d.get("id"))))
             if vychozi is None and d.get("deviceType") == "smarttv":
                 vychozi = str(d.get("id"))
+        pole: dict[Any, Any] = {}
+        if len(profily) > 1:
+            pole[vol.Required(CONF_PROFILE_ID, default=cur.get(CONF_PROFILE_ID) or api.profile_id or profily[0][1])] = _select(profily)
         schema = vol.Schema({
+            **pole,
             vol.Required(CONF_DEVICE_ID, default=vychozi or ""): _select(zarizeni),
             vol.Required(CONF_TV_ENTITY, default=cur.get(CONF_TV_ENTITY, DEFAULT_TV_ENTITY)):
                 selector.EntitySelector(selector.EntitySelectorConfig(domain="media_player")),

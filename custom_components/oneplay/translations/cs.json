@@ -45,6 +45,7 @@
         "title": "Nastavení Oneplay",
         "description": "Vyber zařízení na účtu Oneplay, které odpovídá televizi. „Přehrává“ pak platí jen tehdy, když streamuje právě ono (řada Pokračovat ve sledování patří profilu, pozici může posouvat i tablet). Naposledy posunutá položka: {posledni_titul}.",
         "data": {
+          "profile_id": "Profil Oneplay",
           "oneplay_device": "Zařízení Oneplay (televize)",
           "tv_entity": "Televize v HA",
           "tv_source": "Název zdroje Oneplay na televizi"
