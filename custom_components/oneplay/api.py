@@ -194,14 +194,17 @@ class OneplayApi:
             data = await self.call("carousel.display", {"payload": {
                 "carouselId": CW_CAROUSEL, "paging": {"count": 10, "position": 1}}})
             tiles = (data.get("carousel") or {}).get("tiles")
-            if tiles is not None:
+            if tiles:
                 return tiles
+            _LOGGER.debug("carousel.display vrátilo prázdnou řadu, zkouším úvodní stránku")
         except OneplayError as err:
             _LOGGER.debug("carousel.display selhalo (%s), beru celou úvodní stránku", err)
         # Záloha: celá úvodní stránka a hledání řady podle názvu (id se může změnit)
         data = await self.call("page.category.display", {"payload": {"categoryId": "1"}})
         for block in (data.get("layout") or {}).get("blocks") or []:
             for car in block.get("carousels") or []:
+                _LOGGER.debug("Oneplay řada: %s / %s (%d dlaždic)", car.get("id"),
+                              (car.get("tracking") or {}).get("title"), len(car.get("tiles") or []))
                 if (car.get("tracking") or {}).get("title") == CW_TITLE or car.get("id") == CW_CAROUSEL:
                     return car.get("tiles") or []
         return []

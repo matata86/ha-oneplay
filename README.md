@@ -54,6 +54,7 @@ Protokol je stejný, jaký používá web Oneplay i [Kodi doplněk `plugin.video
 - API neříká, *které* zařízení konkrétní položku v „Pokračovat ve sledování“ posunulo — jen že se něco posunulo a která zařízení právě streamují. Bez výběru zařízení v nastavení se tedy může stát, že se u vybrané TV zobrazí pořad z jiného zařízení na stejném profilu.
 - Živé vysílání (TV kanály) je odzkoušené jen částečně — položky typu `epgitem` se v řadě objevují, ale přesné chování při přepínání kanálů nebylo ověřeno tak důkladně jako u pořadů ze záznamu.
 - Při sdíleném profilu integrace odhaduje pořad podle toho, u které dlaždice roste pozice; vybraná dlaždice se drží, dokud roste, a záznam má přednost před živým vysíláním. Jistotu dá jen samostatný profil pro TV.
+- Po přepnutí na jiný pořad trvá asi minutu, než ho Oneplay zapíše do řady „Pokračovat ve sledování“ — do té doby je senzor `unknown`. Rychlejší dotazování s tím nepomůže, zpoždění je na straně Oneplay.
 - Interval dotazu je 60 s, takže změna (pauza/play) se projeví s menším zpožděním než u lokálního přehrávače.
 
 ## Řešení potíží
