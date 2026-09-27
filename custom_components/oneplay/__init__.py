@@ -38,6 +38,19 @@ PLATFORMS = [Platform.SENSOR]
 STEJNE_VZDEJ_TO = 5   # dotazů (~5 min) bez pohybu, než přestaneme trvat na staré pauze
 
 
+def zbyva_dotazu(data: dict) -> int:
+    """Kolik minutových dotazů ještě držet pořad, který zmizel z řady.
+
+    Oneplay dlaždici vyhodí kolem 90 %, i když díl ještě běží (ověřeno
+    2026-09-27 na Love Island: zmizel na 89 %). Zbytek odhadneme z pozice
+    a procent, minimálně STEJNE_VZDEJ_TO.
+    """
+    poz, pct = data.get("pozice_s"), data.get("procenta")
+    if not poz or not pct:
+        return STEJNE_VZDEJ_TO
+    return max(STEJNE_VZDEJ_TO, int(poz * (100 / pct - 1) / SCAN_INTERVAL_S) + 2)
+
+
 def parse_tile(tile: dict) -> dict[str, Any]:
     tr = tile.get("tracking") or {}
     parent = tr.get("parent") or {}
@@ -74,6 +87,7 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self._pozice: dict[str, tuple] = {}   # content_id -> (pozice, procenta) z minulého dotazu
         self._vybrany: str | None = None      # content_id dlaždice, kterou teď považujeme za „hraje se“
         self._stejne = 0                      # kolik dotazů po sobě se u vybrané dlaždice nic nezměnilo
+        self._posledni: dict[str, Any] = {}   # data vybrané dlaždice z minula (pro dlaždici, co z řady zmizela)
 
     def tv_v_oneplay(self) -> bool:
         st = self.hass.states.get(self.tv_entity)
@@ -86,6 +100,7 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # TV není v Oneplay — API se neptáme, jen shodíme „hraje“
             self._pozice = {}
             self._vybrany = None
+            self._posledni = {}
             return {**self.data, "hraje": False, "tv_v_oneplay": False}
         try:
             tiles = await self.api.continue_watching()
@@ -143,6 +158,16 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             data = parse_tile(next(t for t in tiles if (t.get("tracking") or {}).get("id") == self._vybrany))
             self._stejne += 1
             hraje = False
+        elif (aktivni and self._vybrany and self._posledni.get("content_id") == self._vybrany
+              and self._stejne < zbyva_dotazu(self._posledni)
+              and not any((t.get("tracking") or {}).get("id") == self._vybrany for t in tiles)):
+            # Vybraný pořad z řady zmizel — Oneplay ho kolem 90 % považuje za
+            # dokoukaný, i když ještě běží. Držet ho po odhadnutý zbytek; když
+            # se mezitím posune něco jiného (další díl, jiný kanál), vezme to
+            # větev s `posunute` výš.
+            data = dict(self._posledni)
+            self._stejne += 1
+            hraje = True
         elif tiles:
             # Bez použitelné historie (start, nebo dávno zaseklá pauza) nevíme
             # jistě, co se hraje — bereme první dlaždici, ale bez tvrzení, že hraje.
@@ -156,6 +181,7 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         if self.device_id and not tv_streamuje:
             hraje = False
         self._pozice = pozice_nyni if aktivni else {}
+        self._posledni = dict(data) if self._vybrany else {}
         data.update({
             "hraje": hraje,
             "tv_v_oneplay": aktivni,
