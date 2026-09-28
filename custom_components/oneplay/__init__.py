@@ -178,7 +178,10 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # „Pokračovat ve sledování“ patří profilu, ne zařízení — pozici může posouvat
         # i tablet na stejném profilu. S vybraným zařízením hraje jen při jeho streamu.
-        if self.device_id and not tv_streamuje:
+        # Výjimka: vybrané zařízení občas ze seznamu streamujících vypadne, i když
+        # dál hraje (2026-09-28, Love Island — pozice rostla, TV „nestreamovala“).
+        # Když držená dlaždice pořád roste a nějaké zařízení streamuje, věřit pozici.
+        if self.device_id and not tv_streamuje and not (drzena is not None and streamuje):
             hraje = False
         self._pozice = pozice_nyni if aktivni else {}
         self._posledni = dict(data) if self._vybrany else {}
