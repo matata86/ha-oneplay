@@ -14,7 +14,7 @@ Zjistí, co se právě přehrává v aplikaci **Oneplay** — typicky na chytré
 ## Co to umí
 
 - **`sensor.oneplay_prehrava`** — název naposledy sledovaného pořadu, obrázek jako `entity_picture`, a atributy: díl, série, číslo dílu, typ (`episode` / `epgitem`), kategorie, pozice v sekundách, procenta, odkaz na Oneplay.
-- **`hraje`** — `true`, pokud se pozice od minulého dotazu posunula (tedy se opravdu přehrává, ne jen pauza na stejném místě).
+- **`hraje`** — `true`, pokud se pozice od minulého dotazu posunula (tedy se opravdu přehrává, ne jen pauza na stejném místě). Nový díl, který se v řadě „Pokračovat ve sledování“ právě objevil, zatímco TV streamuje, platí za přehrávaný hned, bez čekání na posun pozice.
 - **Volitelně vybrané zařízení** (Nastavení integrace → Konfigurovat) — když má účet víc zařízení (TV, tablet, mobil), `hraje` bude platit jen tehdy, když streamuje právě to vybrané. Bez výběru platí pro jakékoli zařízení na účtu.
 - **Dotaz jen když je potřeba** — integrace sleduje zadanou entitu televize v HA a na Oneplay se ptá jen tehdy, když má nastavený zdroj Oneplay (jinak by zbytečně zatěžovala účet i síť).
 
