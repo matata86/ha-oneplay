@@ -161,8 +161,11 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             # v řadě pořád je — bereme to jako pauzu na tom samém pořadu. Jen ne
             # navěky: po STEJNE_VZDEJ_TO dotazech bez pohybu to vzdáme (dole).
             data = parse_tile(next(t for t in tiles if (t.get("tracking") or {}).get("id") == self._vybrany))
+            # Jeden stojící vzorek u VOD je často jen zpožděné ukládání pozice
+            # (2026-09-29, SuperStar: 1837 s dva dotazy, pak zase +60 s) — pokud
+            # minule hrálo, pauzu hlásit až při druhém stojícím vzorku.
             self._stejne += 1
-            hraje = False
+            hraje = self._stejne == 1 and bool(self.data and self.data.get("hraje"))
         elif (aktivni and self._vybrany and self._posledni.get("content_id") == self._vybrany
               and self._stejne < zbyva_dotazu(self._posledni)
               and not any((t.get("tracking") or {}).get("id") == self._vybrany for t in tiles)):

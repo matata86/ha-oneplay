@@ -56,6 +56,7 @@ Protokol je stejný, jaký používá web Oneplay i [Kodi doplněk `plugin.video
 - Při sdíleném profilu integrace odhaduje pořad podle toho, u které dlaždice roste pozice; vybraná dlaždice se drží, dokud roste, a záznam má přednost před živým vysíláním. Jistotu dá jen samostatný profil pro TV.
 - Po přepnutí na jiný pořad trvá asi minutu, než ho Oneplay zapíše do řady „Pokračovat ve sledování“ — do té doby je senzor `unknown`. Rychlejší dotazování s tím nepomůže, zpoždění je na straně Oneplay.
 - Interval dotazu je 60 s, takže změna (pauza/play) se projeví s menším zpožděním než u lokálního přehrávače.
+- Pauza se hlásí až při druhém dotazu bez posunu pozice (tedy asi po 2 minutách). Oneplay u záznamů občas pozici jeden dotaz neuloží, i když se dál přehrává, a `hraje` by jinak na minutu falešně spadlo.
 
 ## Řešení potíží
 
