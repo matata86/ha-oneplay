@@ -135,10 +135,13 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             pozice_nyni.setdefault(cid, klic)
             if cid in self._pozice and klic != self._pozice[cid]:
                 posunute.append(tile)
-            elif self._pozice and cid not in self._pozice and tv_streamuje:
-                # Dlaždice, která v řadě minule nebyla, a TV streamuje = právě
-                # spuštěný pořad (nový díl). Nečekat další minutu na posun pozice
+            elif self._pozice and cid not in self._pozice and tv_streamuje and tile is tiles[0]:
+                # Nová dlaždice na prvním místě, a TV streamuje = právě spuštěný
+                # pořad (nový díl). Nečekat další minutu na posun pozice
                 # (2026-09-29, Love Island 20. díl: „hraje“ až po ~3 min).
+                # Jen první místo: když Oneplay kolem 90 % vyhodí sledovaný díl,
+                # zespodu do řady přisune jinou dlaždici — ta není nová
+                # (2026-09-30, Love Island → Fazolčina kavárna, LED do bílé).
                 posunute.append(tile)
 
         # Pozice může růst u víc dlaždic naráz (živé přenosy sledované jinde na
