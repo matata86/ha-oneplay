@@ -150,9 +150,18 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         # stojící vzorek u VOD je jen zpožděné ukládání pozice). Při novém výběru
         # dostane přednost záznam (episode) před živým vysíláním.
         drzena = next((t for t in posunute if (t.get("tracking") or {}).get("id") == self._vybrany), None)
+        # První dlaždice bez pozice při streamu TV = právě spuštěný díl, kterému
+        # Oneplay pozici zatím neukládá (2026-10-05, Love Island 25. díl: pozice
+        # None přes 10 min sledování, posun nešlo zachytit a „hraje“ bylo false).
+        prvni = tiles[0] if tiles else {}
+        bez_pozice = (tv_streamuje and prvni and (prvni.get("progress") or {}).get("position") is None
+                      and (prvni.get("tracking") or {}).get("type") != "epgitem")
         if aktivni and drzena is not None:
             data = parse_tile(drzena)
             hraje, self._stejne = True, 0
+        elif aktivni and bez_pozice and not posunute:
+            data = parse_tile(prvni)
+            self._vybrany, hraje, self._stejne = data.get("content_id"), True, 0
         elif aktivni and posunute and (not self._vybrany or self._stejne >= 1 or not any(
                 (t.get("tracking") or {}).get("id") == self._vybrany for t in tiles)):
             nova = next((t for t in posunute if (t.get("tracking") or {}).get("type") != "epgitem"), posunute[0])
