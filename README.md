@@ -39,7 +39,7 @@ Nastavení → Zařízení a služby → Přidat integraci → **Oneplay**.
 - Pokud má účet víc účtů nebo profilů, integrace nabídne výběr.
 - **Televize v Home Assistantu** (`media_player`) a **název jejího zdroje Oneplay** — podle nich integrace pozná, kdy se má vůbec ptát.
 
-Integrace si zařízení na účtu Oneplay pojmenuje „Home Assistant“; při dalším přihlášení starší zařízení se stejným jménem sama odstraní, aby se na účtu nehromadila.
+Integrace si zařízení na účtu Oneplay pojmenuje „Home Assistant“ a jeho id si uloží. Při dalším přihlášení odstraní jen starší zařízení, která sama vytvořila, aby se na účtu nehromadila. Cizí zařízení (i se stejným jménem, třeba z druhé instance Home Assistant) nechává být.
 
 **Nejspolehlivější je mít pro televizi samostatný profil Oneplay** (Možnosti → Profil Oneplay) a v aplikaci na TV používat jen ten: řada „Pokračovat ve sledování“ pak patří jen televizi a rozpoznání pořadu nezpletou ostatní zařízení.
 

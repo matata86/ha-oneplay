@@ -30,8 +30,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from homeassistant.util import dt as dt_util
 
 from .api import OneplayApi, OneplayError
-from .const import (CONF_ACCOUNT_ID, CONF_DEVICE_ID, CONF_PROFILE_ID, CONF_TV_ENTITY, CONF_TV_SOURCE,
-                    DEFAULT_TV_ENTITY, DEFAULT_TV_SOURCE, DOMAIN, SCAN_INTERVAL_S)
+from .const import (CONF_ACCOUNT_ID, CONF_DEVICE_ID, CONF_OWN_DEVICES, CONF_PROFILE_ID, CONF_TV_ENTITY,
+                    CONF_TV_SOURCE, DEFAULT_TV_SOURCE, DOMAIN, SCAN_INTERVAL_S)
 
 _LOGGER = logging.getLogger(__name__)
 PLATFORMS = [Platform.SENSOR]
@@ -80,14 +80,22 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         d = entry.data
         o = {**d, **entry.options}
         self.api = OneplayApi(async_get_clientsession(hass), d[CONF_EMAIL], d[CONF_PASSWORD],
-                              d.get(CONF_ACCOUNT_ID), o.get(CONF_PROFILE_ID))
-        self.tv_entity = o.get(CONF_TV_ENTITY, DEFAULT_TV_ENTITY)
+                              d.get(CONF_ACCOUNT_ID), o.get(CONF_PROFILE_ID), d.get(CONF_OWN_DEVICES))
+        self.options = dict(entry.options)    # pro rozlišení změny nastavení od uložení zařízení
+        self.tv_entity = o[CONF_TV_ENTITY]
         self.tv_source = o.get(CONF_TV_SOURCE, DEFAULT_TV_SOURCE)
         self.device_id = str(o.get(CONF_DEVICE_ID) or "")
         self._pozice: dict[str, tuple] = {}   # content_id -> (pozice, procenta) z minulého dotazu
         self._vybrany: str | None = None      # content_id dlaždice, kterou teď považujeme za „hraje se“
         self._stejne = 0                      # kolik dotazů po sobě se u vybrané dlaždice nic nezměnilo
         self._posledni: dict[str, Any] = {}   # data vybrané dlaždice z minula (pro dlaždici, co z řady zmizela)
+
+    def _uloz_zarizeni(self) -> None:
+        """Po novém přihlášení zapsat vlastní zařízení na účtu do config entry."""
+        entry = self.config_entry
+        if self.api.own_device_ids != entry.data.get(CONF_OWN_DEVICES):
+            self.hass.config_entries.async_update_entry(
+                entry, data={**entry.data, CONF_OWN_DEVICES: list(self.api.own_device_ids)})
 
     def tv_v_oneplay(self) -> bool:
         st = self.hass.states.get(self.tv_entity)
@@ -109,6 +117,7 @@ class OneplayCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(str(err)) from err
         except Exception as err:  # noqa: BLE001 — síť/timeout
             raise UpdateFailed(f"Oneplay nedostupný: {err}") from err
+        self._uloz_zarizeni()
 
         if _LOGGER.isEnabledFor(logging.DEBUG):
             _LOGGER.debug("Oneplay dlaždice: %s", [
@@ -234,7 +243,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _options_zmena(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    await hass.config_entries.async_reload(entry.entry_id)
+    # Listener volá i zápis vlastních zařízení do entry.data — reload jen při změně nastavení
+    if dict(entry.options) != entry.runtime_data.options:
+        await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

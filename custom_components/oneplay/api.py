@@ -35,7 +35,8 @@ class OneplayAuthError(OneplayError):
 
 class OneplayApi:
     def __init__(self, session: aiohttp.ClientSession, email: str, password: str,
-                 account_id: str | None = None, profile_id: str | None = None) -> None:
+                 account_id: str | None = None, profile_id: str | None = None,
+                 own_device_ids: list[str] | None = None) -> None:
         self._session = session
         self._email = email
         self._password = password
@@ -44,6 +45,9 @@ class OneplayApi:
         self._token: str | None = None
         self._version = BASE_VERSION
         self._device_id: str | None = None
+        # Zařízení na účtu, která vytvořila tahle integrace (uložená v config entry).
+        # Mazat se smí jen ta — nikdy cizí zařízení, ani se stejným jménem.
+        self.own_device_ids: list[str] = list(own_device_ids or [])
 
     # --- nízká úroveň ---------------------------------------------------------
     async def _raw(self, method: str, payload: dict | None, auth: bool = True) -> dict:
@@ -102,7 +106,9 @@ class OneplayApi:
                 "email": self._email, "password": self._password}}}, auth=False)
         except OneplayError as err:
             raise OneplayAuthError(str(err)) from err
-        return data.get("step") or {}
+        step = data.get("step") or {}
+        self._remember_device(step)
+        return step
 
     @staticmethod
     def accounts_from_step(step: dict) -> list[tuple[str, str]]:
@@ -130,7 +136,7 @@ class OneplayApi:
         self._token = step.get("bearerToken")
         if not self._token:
             raise OneplayAuthError("Oneplay nevrátil token")
-        self._device_id = ((step.get("currentUser") or {}).get("currentDevice") or {}).get("id")
+        self._device_id = self._remember_device(step)
         await self._tidy_devices()
         if not self.profile_id:
             profily = await self.profiles()
@@ -140,20 +146,36 @@ class OneplayApi:
             if data.get("bearerToken"):
                 self._token = data["bearerToken"]
 
+    def _remember_device(self, step: dict) -> str | None:
+        """Id zařízení, které přihlášení na účtu vytvořilo, připíše mezi vlastní."""
+        dev_id = ((step.get("currentUser") or {}).get("currentDevice") or {}).get("id")
+        if dev_id and str(dev_id) not in self.own_device_ids:
+            self.own_device_ids.append(str(dev_id))
+        return str(dev_id) if dev_id else None
+
     async def _tidy_devices(self) -> None:
-        """Pojmenuje vlastní zařízení „Home Assistant“ a smaže starší se stejným jménem,
-        aby se na účtu nehromadila zařízení po každém přihlášení."""
+        """Pojmenuje vlastní zařízení „Home Assistant“ a smaže starší zařízení, která
+        vytvořila tahle integrace, aby se na účtu nehromadila po každém přihlášení."""
         if not self._device_id:
             return
         try:
             await self._raw("user.device.change",
                             {"payload": {"id": self._device_id, "name": DEVICE_NAME}})
-            for dev in await self.devices():
-                if dev.get("id") != self._device_id and dev.get("name") == DEVICE_NAME:
-                    await self._raw("user.device.remove", {"payload": {"criteria": {
-                        "schema": "UserDeviceIdCriteria", "id": dev["id"]}}})
+            na_uctu = {str(d.get("id")) for d in await self.devices()}
         except OneplayError as err:
             _LOGGER.debug("Úklid zařízení se nepovedl: %s", err)
+            return
+        nechat = [self._device_id]
+        for dev_id in self.own_device_ids:
+            if dev_id == self._device_id or dev_id not in na_uctu:
+                continue
+            try:
+                await self._raw("user.device.remove", {"payload": {"criteria": {
+                    "schema": "UserDeviceIdCriteria", "id": dev_id}}})
+            except OneplayError as err:
+                _LOGGER.debug("Smazání zařízení %s se nepovedlo: %s", dev_id, err)
+                nechat.append(dev_id)
+        self.own_device_ids = nechat
 
     async def profiles(self) -> list[tuple[str, str]]:
         data = await self._raw("user.profiles.display", {"payload": {"mode": "change"}})

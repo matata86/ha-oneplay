@@ -53,7 +53,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Oneplay is not responding."
+      "cannot_connect": "Oneplay is not responding.",
+      "not_loaded": "The integration is not loaded, so devices and profiles are unavailable. You can still change the TV."
     }
   }
 }

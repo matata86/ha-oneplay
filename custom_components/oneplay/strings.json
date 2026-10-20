@@ -53,7 +53,8 @@
       }
     },
     "error": {
-      "cannot_connect": "Oneplay neodpovídá."
+      "cannot_connect": "Oneplay neodpovídá.",
+      "not_loaded": "Integrace není načtená, seznam zařízení a profilů není k dispozici. Televizi lze změnit i tak."
     }
   }
 }
