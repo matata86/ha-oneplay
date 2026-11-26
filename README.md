@@ -20,7 +20,17 @@ Zjistí, co se právě přehrává v aplikaci **Oneplay** — typicky na chytré
 
 ## Instalace
 
-### Přes HACS (vlastní repozitář)
+### Přes HACS
+
+Integrace je ve výchozím katalogu HACS.
+
+1. HACS → vyhledej **Oneplay**.
+2. Otevři ji a klikni na **Stáhnout**.
+3. Restartuj Home Assistant.
+
+### Přes HACS jako vlastní repozitář
+
+Pokud integraci ve vyhledávání nevidíš (třeba starší HACS):
 
 1. HACS → tři tečky vpravo nahoře → **Vlastní repozitáře**.
 2. URL: `https://github.com/matata86/ha-oneplay`, kategorie **Integrace**.
